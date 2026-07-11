@@ -1,39 +1,58 @@
-// Web Worker for high-performance RAW image preview extraction and compression
+// Web Worker for high-performance RAW/Standard image preview extraction and compression
 importScripts('./lib/exifreader.js');
 
 self.onmessage = async function(e) {
-  const { fileBuffer, name, quality, maxDim } = e.data;
+  const { fileBuffer, name, quality } = e.data;
   const startTime = performance.now();
+  const maxDim = 1920; // Locked standard 1080p resolution max dimension
   
   try {
-    // 1. Extract embedded JPEG preview from the RAW file buffer
-    const jpegData = extractLargestJpeg(fileBuffer);
-    if (!jpegData) {
-      throw new Error('No embedded JPEG preview found in the RAW file.');
+    const fileBlob = new Blob([fileBuffer]);
+    let imageBitmap = null;
+    let previewBuffer = null;
+    let isRaw = false;
+    
+    // 1. Try to load natively as standard image (JPEG, PNG, WebP, etc.)
+    try {
+      imageBitmap = await createImageBitmap(fileBlob);
+      // For standard images, the "before" is the original file
+      previewBuffer = fileBuffer.slice(0);
+    } catch (nativeErr) {
+      // 2. Native decoding failed, treat as RAW and try to extract embedded JPEG preview
+      isRaw = true;
+      const jpegData = extractLargestJpeg(fileBuffer);
+      if (!jpegData) {
+        throw new Error('Unsupported format or no embedded JPEG preview found.');
+      }
+      imageBitmap = await createImageBitmap(new Blob([jpegData], { type: 'image/jpeg' }));
+      previewBuffer = jpegData.buffer.slice(jpegData.byteOffset, jpegData.byteOffset + jpegData.byteLength);
     }
     
-    // 2. Parse EXIF metadata using the local ExifReader library
+    // 3. Parse EXIF metadata using the local ExifReader library
     let metadata = {};
     try {
-      // ExifReader.load expects a Uint8Array or ArrayBuffer
-      const tags = ExifReader.load(jpegData);
+      // Try parsing the original file first, fall back to extracted JPEG if it fails
+      let tags;
+      try {
+        tags = ExifReader.load(fileBuffer);
+      } catch (e) {
+        tags = ExifReader.load(previewBuffer);
+      }
       metadata = parseMetadata(tags);
     } catch (metaErr) {
       console.warn('Metadata parsing failed:', metaErr);
-      metadata = { error: 'Failed to parse metadata' };
+      metadata = { error: 'No metadata available' };
     }
     
     const extractionTime = performance.now();
-    const jpegBlob = new Blob([jpegData], { type: 'image/jpeg' });
     
-    // 3. Resize and Compress using OffscreenCanvas (if supported)
+    // 4. Resize and Compress using OffscreenCanvas (if supported)
     if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap !== 'undefined') {
       try {
-        const imageBitmap = await createImageBitmap(jpegBlob);
-        
-        // Calculate new dimensions (maintain aspect ratio, cap max dimension at maxDim)
         let width = imageBitmap.width;
         let height = imageBitmap.height;
+        
+        // Scale down to max 1920px (lock dimension for web/mobile/pc/tv viewing)
         if (width > maxDim || height > maxDim) {
           if (width > height) {
             height = Math.round((height * maxDim) / width);
@@ -55,10 +74,6 @@ self.onmessage = async function(e) {
         });
         
         const compressedBuffer = await webpBlob.arrayBuffer();
-        
-        // Extract a clean ArrayBuffer of the preview JPEG to return for comparison
-        const previewBuffer = jpegData.buffer.slice(jpegData.byteOffset, jpegData.byteOffset + jpegData.byteLength);
-        
         const duration = performance.now() - startTime;
         
         self.postMessage({
@@ -77,7 +92,6 @@ self.onmessage = async function(e) {
           }
         }, [compressedBuffer, previewBuffer]);
         
-        // Clean up resources
         imageBitmap.close();
         return;
       } catch (canvasErr) {
@@ -85,20 +99,19 @@ self.onmessage = async function(e) {
       }
     }
     
-    // Fallback: send the raw extracted JPEG bytes to the main thread for UI-thread rendering/resizing
+    // Fallback: send the raw preview JPEG/original image bytes to the main thread for canvas compression
     const duration = performance.now() - startTime;
-    const jpegArrayBuffer = await jpegBlob.arrayBuffer();
     self.postMessage({
       status: 'fallback',
       name: name,
-      jpegBuffer: jpegArrayBuffer,
+      jpegBuffer: previewBuffer,
       originalSize: fileBuffer.byteLength,
       metadata: metadata,
       timings: {
         extraction: extractionTime - startTime,
         total: duration
       }
-    }, [jpegArrayBuffer]);
+    }, [previewBuffer]);
     
   } catch (err) {
     self.postMessage({
@@ -110,9 +123,7 @@ self.onmessage = async function(e) {
 };
 
 /**
- * Parses and returns the largest embedded JPEG within a RAW binary file buffer.
- * It uses a fast JPEG marker-skipping algorithm to scan segments correctly,
- * and falls back to a simpler scan if the structure is atypical.
+ * Extracts the largest embedded JPEG within a RAW binary file buffer.
  */
 function extractLargestJpeg(arrayBuffer) {
   const uint8 = new Uint8Array(arrayBuffer);
@@ -133,21 +144,16 @@ function extractLargestJpeg(arrayBuffer) {
           const marker = uint8[offset + 1];
           
           if (marker === 0xD9) {
-            // End of Image marker
             offset += 2;
             foundEOI = true;
             break;
           } else if (marker === 0x00) {
-            // Byte stuffing: 0xFF00 inside scan data, skip
             offset += 2;
           } else if (marker >= 0xD0 && marker <= 0xD7) {
-            // RST markers (no length fields)
             offset += 2;
           } else if (marker === 0xFF) {
-            // Multiple 0xFFs in a row (allowed as fill bytes)
             offset += 1;
           } else {
-            // Marker with length header
             if (offset + 3 < length) {
               const segLength = (uint8[offset + 2] << 8) | uint8[offset + 3];
               offset += 2 + segLength;
@@ -162,7 +168,7 @@ function extractLargestJpeg(arrayBuffer) {
       
       if (foundEOI && offset > start + 100) {
         candidates.push({ start, end: offset, size: offset - start });
-        i = offset; // Jump past this JPEG to continue scanning
+        i = offset;
       } else {
         i++;
       }
@@ -177,7 +183,6 @@ function extractLargestJpeg(arrayBuffer) {
     while (i < length - 4) {
       if (uint8[i] === 0xFF && uint8[i+1] === 0xD8 && uint8[i+2] === 0xFF) {
         const start = i;
-        // Simple search for next 0xFFD9
         let end = -1;
         for (let j = i + 2; j < length - 1; j++) {
           if (uint8[j] === 0xFF && uint8[j+1] === 0xD9) {
@@ -201,7 +206,6 @@ function extractLargestJpeg(arrayBuffer) {
     return null;
   }
   
-  // Return the largest candidate (the high-resolution preview rather than a tiny thumbnail)
   candidates.sort((a, b) => b.size - a.size);
   const best = candidates[0];
   return uint8.subarray(best.start, best.end);
@@ -229,12 +233,10 @@ function parseMetadata(tags) {
   result.focalLength = getTagValue('FocalLength');
   result.lens = getTagValue('LensModel') || getTagValue('LensInfo') || getTagValue('Lens');
   
-  // Clean up focal length (e.g. "50 mm" -> "50mm")
   if (result.focalLength && typeof result.focalLength === 'string') {
     result.focalLength = result.focalLength.replace(/\s+/g, '');
   }
   
-  // Format exposure time (e.g., "1/250" or "0.004" -> fraction format if possible)
   if (result.exposureTime && typeof result.exposureTime === 'string') {
     if (!result.exposureTime.includes('/')) {
       const val = parseFloat(result.exposureTime);
@@ -245,7 +247,6 @@ function parseMetadata(tags) {
     }
   }
   
-  // Format F-number (e.g., "f/2.8")
   if (result.fNumber && typeof result.fNumber === 'string') {
     if (!result.fNumber.startsWith('f/')) {
       result.fNumber = `f/${result.fNumber}`;

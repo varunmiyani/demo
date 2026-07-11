@@ -1,0 +1,5 @@
+.DS_Store
+raw-samples/
+node_modules/
+dist/
+.env

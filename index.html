@@ -4,215 +4,99 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RawCompress // Studio-OS</title>
-  <meta name="description" content="High-performance client-side RAW image compressor. Extracts preview JPEGs and compresses to WebP locally in the browser with Web Workers.">
+  <meta name="description" content="Simple high-performance client-side RAW and standard image compressor. Encodes to WebP at locked 1080p resolution.">
   <link rel="stylesheet" href="index.css">
-  <!-- Load JSZip library for browser archiving -->
-  <script src="lib/jszip.js"></script>
 </head>
 <body>
   <div class="app-container">
     <!-- Header -->
     <header>
-      <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="brand-title">RawCompress</h1>
-          <div class="brand-subtitle">Studio-OS Compute Engine</div>
-        </div>
-      </div>
-      
-      <div class="system-status">
-        <span class="status-dot"></span>
-        <span>Local Sandbox Active (Offline Safe)</span>
-      </div>
+      <h1 class="brand-title">RawCompress</h1>
+      <div class="brand-subtitle">Studio-OS Local Compressor</div>
     </header>
 
-    <!-- Dashboard -->
-    <div class="dashboard-grid">
-      <!-- Left Column: Settings Sidebar -->
-      <aside class="panel">
-        <h2 class="panel-title">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Configuration
-        </h2>
-        
-        <!-- Quality slider -->
-        <div class="form-group">
-          <label for="quality">
-            <span>Compression Quality</span>
-            <span class="val-badge" id="qualityValue">80%</span>
-          </label>
-          <input type="range" id="quality" min="10" max="100" value="80">
-        </div>
-        
-        <!-- Max dimension slider -->
-        <div class="form-group">
-          <label for="dimension">
-            <span>Max Resize Dimension</span>
-            <span class="val-badge" id="dimensionValue">2048px</span>
-          </label>
-          <input type="range" id="dimension" min="500" max="4000" step="50" value="2048">
-        </div>
-
-        <!-- Concurrency thread select -->
-        <div class="form-group">
-          <label for="concurrency">
-            <span>Processing Threads</span>
-          </label>
-          <select id="concurrency">
-            <!-- Populated via Javascript -->
-          </select>
-        </div>
-
-        <!-- Auto-download toggle -->
-        <div class="toggle-group">
-          <label for="autoDownload">Auto-download WebP</label>
-          <label class="switch">
-            <input type="checkbox" id="autoDownload">
-            <span class="slider"></span>
-          </label>
-        </div>
-      </aside>
-
-      <!-- Right Column: Main Workspace -->
-      <main class="main-workspace">
-        <!-- Drag & Drop Zone -->
-        <div class="dropzone" id="dropzone">
-          <div class="dropzone-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-          </div>
-          <div class="dropzone-text">
-            <h3>Drop RAW images here</h3>
-            <p>Supports .CR2, .CR3, .ARW, .NEF, .DNG files up to 100MB+</p>
-          </div>
-          <input type="file" id="fileInput" multiple style="display: none;">
-        </div>
-
-        <!-- Global Stats Summary -->
-        <div class="stats-container">
-          <div class="stat-item">
-            <span class="stat-label">Processed</span>
-            <span class="stat-val" id="statFilesCount">0 / 0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Space Saved</span>
-            <span class="stat-val highlight" id="statTotalSavings">0 MB</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Avg Duration</span>
-            <span class="stat-val" id="statAvgSpeed">0ms</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Total Out / In</span>
-            <span class="stat-val" id="statProcessedSize" style="font-size: 1rem; margin-top: auto; color: var(--text-secondary);">0 MB of 0 MB</span>
-          </div>
-        </div>
-
-        <!-- Global Progress Tracker -->
-        <div class="global-progress-wrapper">
-          <div class="global-progress-meta">
-            <span id="progressText">Queue empty</span>
-          </div>
-          <div class="progress-track" id="progressTrack">
-            <div class="progress-bar" id="progressBar"></div>
-          </div>
-        </div>
-
-        <!-- Queue Toolbar -->
-        <div class="queue-header">
-          <h2 class="queue-title">Compression Queue</h2>
-          <div class="workspace-actions">
-            <button class="btn btn-secondary" id="clearQueueBtn" disabled>
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-              Clear Queue
-            </button>
-            <button class="btn btn-primary" id="downloadAllBtn" disabled>
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download All (ZIP)
-            </button>
-          </div>
-        </div>
-
-        <!-- File Queue Grid -->
-        <div class="queue-grid" id="queueContainer">
-          <!-- Empty State -->
-          <div class="empty-state" id="queueEmptyState" style="grid-column: 1 / -1;">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <h3>No files in queue</h3>
-            <p>Drag and drop camera RAW files here to start extracting and compressing.</p>
-          </div>
-        </div>
-      </main>
-    </div>
-  </div>
-
-  <!-- Detailed visual comparison lightbox modal -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modalTitle">Comparison Details</h3>
-        <button class="modal-close" id="modalClose">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+    <!-- TOP: Drag & Drop / File Select -->
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
       </div>
-      <div class="modal-body">
-        <!-- Before/After Slider Area -->
+      <div class="dropzone-text">
+        <h3>Upload or drop an image</h3>
+        <p>Supports RAW (.CR2, .CR3, .ARW, .NEF, .DNG) & standard formats (JPEG, PNG, WebP)</p>
+      </div>
+      <input type="file" id="fileInput" accept=".cr2,.cr3,.arw,.nef,.dng,.orf,.pef,.rw2,image/*" style="display: none;">
+    </div>
+
+    <!-- Spinner Loading State -->
+    <div class="spinner-wrapper" id="spinnerWrapper">
+      <div class="spinner"></div>
+      <span class="spinner-text" id="spinnerText">Processing Image...</span>
+    </div>
+
+    <!-- Error Box -->
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- MIDDLE: Adjuster, Comparison Slider & Stats -->
+    <div class="middle-workspace" id="middleWorkspace">
+      <!-- Quality slider card -->
+      <div class="adjuster-card">
+        <div class="adjuster-header">
+          <span>Compression Quality</span>
+          <span class="quality-badge" id="qualityValue">80%</span>
+        </div>
+        <input type="range" id="qualitySlider" min="10" max="100" value="80">
+      </div>
+
+      <!-- Before/After Slider Container -->
+      <div class="comparison-wrapper">
         <div class="comparison-container" id="compContainer">
-          <!-- Before Image: Extracted RAW Preview JPEG -->
+          <!-- Before Image (Original / Extracted RAW preview) -->
           <img class="comparison-img comparison-before" id="compBeforeImg" src="" alt="Original Preview">
           
-          <!-- After Image: Compressed WebP -->
+          <!-- After Image (Compressed WebP) -->
           <div class="comparison-after" id="compAfterContainer">
             <img class="comparison-img" id="compAfterImg" src="" alt="Compressed WebP">
           </div>
           
-          <!-- Slider line and handle -->
+          <!-- Slider split handle -->
           <div class="comparison-slider" id="compSlider">
             <div class="slider-handle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 3 12 8 7"/><polyline points="16 17 21 12 16 7"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="8 17 3 12 8 7"/><polyline points="16 17 21 12 16 7"/></svg>
             </div>
           </div>
           
-          <span class="comparison-label before-label">Extracted JPEG Preview</span>
+          <span class="comparison-label before-label" id="beforeLabel">Original</span>
           <span class="comparison-label after-label">Compressed WebP</span>
         </div>
+      </div>
 
-        <!-- EXIF & Stats side pane -->
-        <div class="modal-meta-panel">
-          <div>
-            <h4 class="meta-section-title">Camera Metadata</h4>
-            <div class="meta-grid-table">
-              <div class="meta-row"><span class="meta-key">Make</span><span class="meta-val" id="metaMake">-</span></div>
-              <div class="meta-row"><span class="meta-key">Model</span><span class="meta-val" id="metaModel">-</span></div>
-              <div class="meta-row"><span class="meta-key">Lens</span><span class="meta-val" id="metaLens">-</span></div>
-              <div class="meta-row"><span class="meta-key">Exposure</span><span class="meta-val" id="metaExif">-</span></div>
-            </div>
-          </div>
-
-          <div>
-            <h4 class="meta-section-title">Compression Details</h4>
-            <div class="meta-grid-table">
-              <div class="meta-row"><span class="meta-key">Original Size</span><span class="meta-val" id="metaSizeOriginal">-</span></div>
-              <div class="meta-row"><span class="meta-key">Compressed Size</span><span class="meta-val" id="metaSizeCompressed">-</span></div>
-              <div class="meta-row"><span class="meta-key">Net Savings</span><span class="meta-val" id="metaSaving" style="color: var(--success); font-weight: 700;">-</span></div>
-              <div class="meta-row"><span class="meta-key">Process Time</span><span class="meta-val" id="metaTime" style="font-size: 0.75rem;">-</span></div>
-            </div>
-          </div>
+      <!-- Stats Metrics Display -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-label">Original Size</span>
+          <span class="stat-val" id="statOriginalSize">0.0 MB</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Compressed Size</span>
+          <span class="stat-val" id="statCompressedSize">0.0 MB</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Savings Ratio</span>
+          <span class="stat-val savings" id="statSavings">-0%</span>
         </div>
       </div>
+    </div>
+
+    <!-- BOTTOM: Action Download Button -->
+    <div class="bottom-actions" id="bottomActions">
+      <button class="btn" id="downloadBtn">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Compressed Image
+      </button>
     </div>
   </div>
 
