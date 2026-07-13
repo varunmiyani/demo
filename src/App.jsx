@@ -68,8 +68,7 @@ export default function App() {
     setFile(selectedFile);
     setOriginalSize(selectedFile.size);
     
-    // Create preview URL for original
-    if (originalUrl) URL.revokeObjectURL(originalUrl);
+    // Create preview URL for original (previous originalUrl is cleaned up via useEffect)
     const url = URL.createObjectURL(selectedFile);
     setOriginalUrl(url);
   };
@@ -89,8 +88,7 @@ export default function App() {
       setEncodingTime(res.encodingTime);
       setCompressedBlob(res.blob);
 
-      // Create URL for compressed preview
-      if (compressedUrl) URL.revokeObjectURL(compressedUrl);
+      // Create URL for compressed preview (previous compressedUrl is cleaned up via useEffect)
       const url = URL.createObjectURL(res.blob);
       setCompressedUrl(url);
     } catch (err) {
@@ -118,11 +116,10 @@ export default function App() {
         let maxDim = null;
         
         if (sizePreset === 'thumbnail') {
-          maxDim = 300; // Small preview thumbnail
+          maxDim = 300;
         } else if (sizePreset === 'medium') {
-          maxDim = 1920; // Medium Web view
+          maxDim = 1920;
         } else if (sizePreset === 'original') {
-          // Check resolution restrictions for Original preset
           if (resPreset === '4k') {
             maxDim = 3840;
           } else if (resPreset === '2k') {
@@ -133,11 +130,9 @@ export default function App() {
         // Apply downscaling proportionally to respect original aspect ratio (Portrait or Landscape)
         if (maxDim && (originalWidth > maxDim || originalHeight > maxDim)) {
           if (originalWidth > originalHeight) {
-            // Landscape orientation: restrict width, compute height
             targetWidth = maxDim;
             targetHeight = Math.round((originalHeight * maxDim) / originalWidth);
           } else {
-            // Portrait orientation: restrict height, compute width
             targetHeight = maxDim;
             targetWidth = Math.round((originalWidth * maxDim) / originalHeight);
           }
@@ -148,14 +143,11 @@ export default function App() {
         canvas.height = targetHeight;
         const ctx = canvas.getContext('2d');
         
-        // Anti-aliasing configuration
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // Draw the image
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
         
-        // Output mime-type
         const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/webp';
         
         const startTime = performance.now();
@@ -214,7 +206,7 @@ export default function App() {
     };
   }, []);
 
-  // Drag & drop dropzone events
+  // Drag & drop events
   const [isDragOver, setIsDragOver] = useState(false);
   
   const handleDragOver = (e) => {
@@ -288,216 +280,173 @@ export default function App() {
       <header className="app-header">
         <div className="brand">
           <div className="brand-dot"></div>
-          <h1>Studio-OS <span>WebP & JPEG Compressor</span></h1>
+          <h1>Studio-OS <span>Compressor OS</span></h1>
         </div>
-        <p className="brand-subtitle">High-performance browser image compressor for photographers</p>
+        <p className="brand-subtitle">High-performance client-side image compression workspace</p>
       </header>
 
       <main className="app-container">
-        {!file ? (
-          /* Initial State: Dropzone */
-          <div className="initial-upload-view">
-            <div 
-              className={`dropzone-card ${isDragOver ? 'dragover' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={triggerUploadClick}
-              id="dropzone"
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/jpeg, image/png, image/webp" 
-                style={{ display: 'none' }}
-                id="fileInput"
-              />
-              <div className="dropzone-icon">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
+        <div className="workspace-grid">
+          
+          {/* Left Panel: Compression Controls */}
+          <div className="panel-controls">
+            <div className="card glass-card">
+              <div className="card-header">
+                <h3>Settings</h3>
               </div>
-              <h3>Drag & drop your High-Res image here</h3>
-              <p>Supports JPEG, PNG, and WebP (up to 50MB files)</p>
-              <button className="btn-primary select-file-btn">Choose File</button>
-            </div>
-
-            {/* Info Cards */}
-            <div className="info-grid">
-              <div className="info-card">
-                <h4>100% Client-Side</h4>
-                <p>Images never touch the cloud. Your local CPU processes everything in the browser for maximum security and zero bandwidth cost.</p>
-              </div>
-              <div className="info-card">
-                <h4>Predictive & Block Formats</h4>
-                <p>Output next-gen WebP or universal JPEG formats. Quality settings are handled locally at hardware level in milliseconds.</p>
-              </div>
-              <div className="info-card">
-                <h4>Pro Aspect Preservation</h4>
-                <p>Portrait and landscape dimensions are auto-detected. Scales images cleanly without stretching or squeezing pixels.</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Active State: Workspace */
-          <div className="workspace-grid">
-            
-            {/* Left Panel: Compression Controls */}
-            <div className="panel-controls">
-              <div className="card glass-card">
-                <div className="card-header">
-                  <h3>Compression Settings</h3>
-                  <button className="btn-secondary btn-small" onClick={resetUploader}>
-                    Upload New
-                  </button>
-                </div>
-                
-                {/* File details */}
+              
+              {/* File details */}
+              {file ? (
                 <div className="file-info-badge">
                   <div className="file-info-text">
                     <span className="file-name" title={file.name}>{file.name}</span>
                     <span className="file-meta">{formatBytes(file.size)}</span>
                   </div>
                 </div>
-
-                {/* Control Group: Format Selector */}
-                <div className="control-group">
-                  <label className="control-label">
-                    <span>Output format</span>
-                  </label>
-                  <div className="presets-toggle">
-                    <button 
-                      className={`preset-btn ${outputFormat === 'webp' ? 'active' : ''}`}
-                      onClick={() => setOutputFormat('webp')}
-                    >
-                      <span className="preset-name">WebP</span>
-                      <span className="preset-size">Next-Gen</span>
-                    </button>
-                    <button 
-                      className={`preset-btn ${outputFormat === 'jpeg' ? 'active' : ''}`}
-                      onClick={() => setOutputFormat('jpeg')}
-                    >
-                      <span className="preset-name">JPEG</span>
-                      <span className="preset-size">Universal</span>
-                    </button>
-                  </div>
+              ) : (
+                <div className="file-info-badge no-file">
+                  <span className="file-meta">No image loaded</span>
                 </div>
+              )}
 
-                <div className="control-group">
-                  <label className="control-label">
-                    <span>Compression Quality</span>
-                    <span className="badge-value">{quality}%</span>
-                  </label>
-                  <div className="slider-wrapper">
-                    <input 
-                      type="range" 
-                      min="10" 
-                      max="100" 
-                      value={quality} 
-                      onChange={(e) => setQuality(parseInt(e.target.value))}
-                      className="quality-slider"
-                      id="qualitySlider"
-                    />
-                    <div className="slider-ticks">
-                      <span>High Comp.</span>
-                      <span>Balanced</span>
-                      <span>Best Quality</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="control-group">
-                  <label className="control-label">
-                    <span>Output Size Preset</span>
-                  </label>
-                  <div className="presets-toggle">
-                    <button 
-                      className={`preset-btn ${preset === 'thumbnail' ? 'active' : ''}`}
-                      onClick={() => setPreset('thumbnail')}
-                    >
-                      <span className="preset-name">Thumbnail</span>
-                      <span className="preset-size">Max 300px</span>
-                    </button>
-                    <button 
-                      className={`preset-btn ${preset === 'medium' ? 'active' : ''}`}
-                      onClick={() => setPreset('medium')}
-                    >
-                      <span className="preset-name">Medium</span>
-                      <span className="preset-size">Max 1920px</span>
-                    </button>
-                    <button 
-                      className={`preset-btn ${preset === 'original' ? 'active' : ''}`}
-                      onClick={() => setPreset('original')}
-                    >
-                      <span className="preset-name">Original</span>
-                      <span className="preset-size">Full Size</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sub Resolution Preset for Original Output */}
-                {preset === 'original' && (
-                  <div className="control-group animate-fade-in">
-                    <label className="control-label">
-                      <span>Original Dimension Limit</span>
-                    </label>
-                    <div className="presets-toggle">
-                      <button 
-                        className={`preset-btn ${originalResPreset === 'original' ? 'active' : ''}`}
-                        onClick={() => setOriginalResPreset('original')}
-                      >
-                        <span className="preset-name">Full Size</span>
-                        <span className="preset-size">No Scale</span>
-                      </button>
-                      <button 
-                        className={`preset-btn ${originalResPreset === '4k' ? 'active' : ''}`}
-                        onClick={() => setOriginalResPreset('4k')}
-                      >
-                        <span className="preset-name">4K Preset</span>
-                        <span className="preset-size">Max 3840px</span>
-                      </button>
-                      <button 
-                        className={`preset-btn ${originalResPreset === '2k' ? 'active' : ''}`}
-                        onClick={() => setOriginalResPreset('2k')}
-                      >
-                        <span className="preset-name">2K Preset</span>
-                        <span className="preset-size">Max 2048px</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="alert alert-error">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="action-row">
+              {/* Output format selector */}
+              <div className="control-group">
+                <label className="control-label">
+                  <span>Output format</span>
+                </label>
+                <div className="presets-toggle">
                   <button 
-                    className="btn-primary btn-large btn-download" 
-                    onClick={downloadCompressed}
-                    disabled={isProcessing || !compressedUrl}
+                    className={`preset-btn ${outputFormat === 'webp' ? 'active' : ''}`}
+                    onClick={() => setOutputFormat('webp')}
                   >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Download {outputFormat.toUpperCase()} Image
+                    <span className="preset-name">WebP</span>
+                    <span className="preset-size">Next-Gen</span>
+                  </button>
+                  <button 
+                    className={`preset-btn ${outputFormat === 'jpeg' ? 'active' : ''}`}
+                    onClick={() => setOutputFormat('jpeg')}
+                  >
+                    <span className="preset-name">JPEG</span>
+                    <span className="preset-size">Universal</span>
                   </button>
                 </div>
               </div>
 
-              {/* Statistics Card */}
-              <div className="card glass-card stats-card">
-                <h3>Compression Metrics</h3>
-                
-                <div className="stats-list">
+              {/* Compression Quality */}
+              <div className="control-group">
+                <label className="control-label">
+                  <span>Compression Quality</span>
+                  <span className="badge-value">{quality}%</span>
+                </label>
+                <div className="slider-wrapper">
+                  <input 
+                    type="range" 
+                    min="10" 
+                    max="100" 
+                    value={quality} 
+                    onChange={(e) => setQuality(parseInt(e.target.value))}
+                    className="quality-slider"
+                    id="qualitySlider"
+                  />
+                  <div className="slider-ticks">
+                    <span>High Comp.</span>
+                    <span>Balanced</span>
+                    <span>Best Quality</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Output Size Preset */}
+              <div className="control-group">
+                <label className="control-label">
+                  <span>Output Size Preset</span>
+                </label>
+                <div className="presets-toggle">
+                  <button 
+                    className={`preset-btn ${preset === 'thumbnail' ? 'active' : ''}`}
+                    onClick={() => setPreset('thumbnail')}
+                  >
+                    <span className="preset-name">Thumbnail</span>
+                    <span className="preset-size">Max 300px</span>
+                  </button>
+                  <button 
+                    className={`preset-btn ${preset === 'medium' ? 'active' : ''}`}
+                    onClick={() => setPreset('medium')}
+                  >
+                    <span className="preset-name">Medium</span>
+                    <span className="preset-size">Max 1920px</span>
+                  </button>
+                  <button 
+                    className={`preset-btn ${preset === 'original' ? 'active' : ''}`}
+                    onClick={() => setPreset('original')}
+                  >
+                    <span className="preset-name">Original</span>
+                    <span className="preset-size">Full Size</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Sub Resolution Preset for Original Output */}
+              {preset === 'original' && (
+                <div className="control-group animate-fade-in">
+                  <label className="control-label">
+                    <span>Original Dimension Limit</span>
+                  </label>
+                  <div className="presets-toggle">
+                    <button 
+                      className={`preset-btn ${originalResPreset === 'original' ? 'active' : ''}`}
+                      onClick={() => setOriginalResPreset('original')}
+                    >
+                      <span className="preset-name">Full Size</span>
+                      <span className="preset-size">No Scale</span>
+                    </button>
+                    <button 
+                      className={`preset-btn ${originalResPreset === '4k' ? 'active' : ''}`}
+                      onClick={() => setOriginalResPreset('4k')}
+                    >
+                      <span className="preset-name">4K Preset</span>
+                      <span className="preset-size">Max 3840px</span>
+                    </button>
+                    <button 
+                      className={`preset-btn ${originalResPreset === '2k' ? 'active' : ''}`}
+                      onClick={() => setOriginalResPreset('2k')}
+                    >
+                      <span className="preset-name">2K Preset</span>
+                      <span className="preset-size">Max 2048px</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="alert alert-error">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <div className="action-row">
+                <button 
+                  className="btn-primary btn-large btn-download" 
+                  onClick={downloadCompressed}
+                  disabled={isProcessing || !compressedUrl}
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Download {outputFormat.toUpperCase()}
+                </button>
+              </div>
+            </div>
+
+            {/* Statistics Card */}
+            <div className="card glass-card stats-card">
+              <h3>Compression Metrics</h3>
+              
+              {file ? (
+                <div className="stats-list animate-fade-in">
                   <div className="stat-item">
                     <span className="stat-label">Original Dimensions</span>
                     <span className="stat-val">{originalDims.width} × {originalDims.height} px</span>
@@ -530,82 +479,142 @@ export default function App() {
                     <span className="stat-val text-dim">{encodingTime} ms</span>
                   </div>
                 </div>
+              ) : (
+                <div className="stats-empty-state">
+                  <p>Awaiting image upload to generate stats.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel: Compact Upload + Interactive Preview */}
+          <div className="panel-preview">
+            
+            {/* Small Dropzone (Always Visible above preview) */}
+            <div 
+              className={`small-dropzone ${isDragOver ? 'dragover' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={triggerUploadClick}
+              id="dropzone"
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/jpeg, image/png, image/webp" 
+                style={{ display: 'none' }}
+                id="fileInput"
+              />
+              <div className="small-dropzone-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div className="small-dropzone-text">
+                <p>Drag & drop photo here or <span>browse files</span> to compress / override</p>
               </div>
             </div>
 
-            {/* Right Panel: Before / After Preview */}
-            <div className="panel-preview">
-              <div className="card glass-card preview-card">
-                <div className="preview-header">
-                  <h3>Interactive Preview</h3>
-                  <div className="preview-labels">
-                    <span className="badge badge-original">Original (Left)</span>
-                    <span className="badge badge-webp">Compressed {outputFormat.toUpperCase()} (Right)</span>
-                  </div>
-                </div>
-
-                <div className="preview-workspace">
-                  {isProcessing && (
-                    <div className="loading-overlay">
-                      <div className="spinner"></div>
-                      <p>Running {outputFormat.toUpperCase()} Encoder...</p>
+            {/* Interactive Preview Card */}
+            <div className="card glass-card preview-card">
+              <div className="preview-header">
+                <h3>Interactive Preview</h3>
+                <div className="preview-header-actions">
+                  {file && (
+                    <button className="btn-clear-image" onClick={resetUploader}>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                      Clear
+                    </button>
+                  )}
+                  {file && (
+                    <div className="preview-labels">
+                      <span className="badge badge-original">Original</span>
+                      <span className="badge badge-webp">{outputFormat.toUpperCase()}</span>
                     </div>
                   )}
+                </div>
+              </div>
 
-                  {originalUrl && compressedUrl && (
+              <div className="preview-workspace">
+                {isProcessing && (
+                  <div className="loading-overlay">
+                    <div className="spinner"></div>
+                    <p>Encoding to {outputFormat.toUpperCase()}...</p>
+                  </div>
+                )}
+
+                {file && originalUrl && compressedUrl ? (
+                  <div 
+                    className="comparison-slider-container"
+                    ref={containerRef}
+                    onMouseDown={(e) => handleSliderStart(e.clientX)}
+                    onMouseMove={(e) => handleSliderMove(e.clientX)}
+                    onTouchStart={(e) => handleSliderStart(e.touches[0].clientX)}
+                    onTouchMove={(e) => handleSliderMove(e.touches[0].clientX)}
+                    id="compContainer"
+                  >
+                    {/* Left: Original Preview Image */}
+                    <img 
+                      src={originalUrl} 
+                      className="slider-image original" 
+                      alt="Original View" 
+                      draggable="false"
+                      id="compBeforeImg"
+                    />
+
+                    {/* Right: Compressed Preview Image with clip-path */}
+                    <img 
+                      src={compressedUrl} 
+                      className="slider-image compressed" 
+                      alt="Compressed View" 
+                      draggable="false"
+                      style={{ clipPath: `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)` }}
+                      id="compAfterImg"
+                    />
+
+                    {/* Slider Divider Bar and Handle */}
                     <div 
-                      className="comparison-slider-container"
-                      ref={containerRef}
-                      onMouseDown={(e) => handleSliderStart(e.clientX)}
-                      onMouseMove={(e) => handleSliderMove(e.clientX)}
-                      onTouchStart={(e) => handleSliderStart(e.touches[0].clientX)}
-                      onTouchMove={(e) => handleSliderMove(e.touches[0].clientX)}
-                      id="compContainer"
+                      className="slider-divider-line" 
+                      style={{ left: `${sliderPos}%` }}
+                      id="compSlider"
                     >
-                      {/* Left: Original Preview Image */}
-                      <img 
-                        src={originalUrl} 
-                        className="slider-image original" 
-                        alt="Original View" 
-                        draggable="false"
-                        id="compBeforeImg"
-                      />
-
-                      {/* Right: Compressed Preview Image with clip-path */}
-                      <img 
-                        src={compressedUrl} 
-                        className="slider-image compressed" 
-                        alt="Compressed View" 
-                        draggable="false"
-                        style={{ clipPath: `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)` }}
-                        id="compAfterImg"
-                      />
-
-                      {/* Slider Divider Bar and Handle */}
-                      <div 
-                        className="slider-divider-line" 
-                        style={{ left: `${sliderPos}%` }}
-                        id="compSlider"
-                      >
-                        <div className="slider-divider-handle">
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="8 17 3 12 8 7" />
-                            <polyline points="16 17 21 12 16 7" />
-                          </svg>
-                        </div>
+                      <div className="slider-divider-handle">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="8 17 3 12 8 7" />
+                          <polyline points="16 17 21 12 16 7" />
+                        </svg>
                       </div>
                     </div>
-                  )}
-                </div>
-                
-                <div className="preview-footer">
-                  <p>Drag the slider bar to compare quality. Zooming in the browser helps inspect high-frequency detail difference.</p>
-                </div>
+                  </div>
+                ) : (
+                  <div className="preview-empty-state">
+                    <div className="empty-state-icon">
+                      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                    </div>
+                    <h4>No image loaded</h4>
+                    <p>Drag an image into the box above to see the side-by-side compression comparison.</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="preview-footer">
+                <p>Drag the slider bar to compare quality. Zooming in the browser helps inspect high-frequency detail difference.</p>
               </div>
             </div>
-
           </div>
-        )}
+
+        </div>
       </main>
     </div>
   );
