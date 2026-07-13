@@ -522,8 +522,8 @@ export default function App() {
             {/* Interactive Preview Card */}
             <div className="card glass-card preview-card">
               <div className="preview-header">
-                <h3>Interactive Preview</h3>
-                <div className="preview-header-actions">
+                <div className="preview-title-row">
+                  <h3>Interactive Preview</h3>
                   {file && (
                     <button className="btn-clear-image" onClick={resetUploader}>
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -533,13 +533,13 @@ export default function App() {
                       Clear
                     </button>
                   )}
-                  {file && (
-                    <div className="preview-labels">
-                      <span className="badge badge-original">Original</span>
-                      <span className="badge badge-webp">{outputFormat.toUpperCase()}</span>
-                    </div>
-                  )}
                 </div>
+                {file && (
+                  <div className="preview-labels">
+                    <span className="badge badge-original">Original</span>
+                    <span className="badge badge-webp">{outputFormat.toUpperCase()}</span>
+                  </div>
+                )}
               </div>
 
               <div className="preview-workspace">

@@ -548,6 +548,12 @@ body {
   gap: 0.75rem;
 }
 
+.preview-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .preview-labels {
   display: flex;
   gap: 0.5rem;
