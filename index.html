@@ -1,105 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RawCompress // Studio-OS</title>
-  <meta name="description" content="Simple high-performance client-side RAW and standard image compressor. Encodes to WebP at locked 1080p resolution.">
-  <link rel="stylesheet" href="index.css">
-</head>
-<body>
-  <div class="app-container">
-    <!-- Header -->
-    <header>
-      <h1 class="brand-title">RawCompress</h1>
-      <div class="brand-subtitle">Studio-OS Local Compressor</div>
-    </header>
-
-    <!-- TOP: Drag & Drop / File Select -->
-    <div class="dropzone" id="dropzone">
-      <div class="dropzone-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-      </div>
-      <div class="dropzone-text">
-        <h3>Upload or drop an image</h3>
-        <p>Supports RAW (.CR2, .CR3, .ARW, .NEF, .DNG) & standard formats (JPEG, PNG, WebP)</p>
-      </div>
-      <input type="file" id="fileInput" accept=".cr2,.cr3,.arw,.nef,.dng,.orf,.pef,.rw2,image/*" style="display: none;">
-    </div>
-
-    <!-- Spinner Loading State -->
-    <div class="spinner-wrapper" id="spinnerWrapper">
-      <div class="spinner"></div>
-      <span class="spinner-text" id="spinnerText">Processing Image...</span>
-    </div>
-
-    <!-- Error Box -->
-    <div class="error-box" id="errorBox"></div>
-
-    <!-- MIDDLE: Adjuster, Comparison Slider & Stats -->
-    <div class="middle-workspace" id="middleWorkspace">
-      <!-- Quality slider card -->
-      <div class="adjuster-card">
-        <div class="adjuster-header">
-          <span>Compression Quality</span>
-          <span class="quality-badge" id="qualityValue">80%</span>
-        </div>
-        <input type="range" id="qualitySlider" min="10" max="100" value="80">
-      </div>
-
-      <!-- Before/After Slider Container -->
-      <div class="comparison-wrapper">
-        <div class="comparison-container" id="compContainer">
-          <!-- Before Image (Original / Extracted RAW preview) -->
-          <img class="comparison-img comparison-before" id="compBeforeImg" src="" alt="Original Preview">
-          
-          <!-- After Image (Compressed WebP) -->
-          <div class="comparison-after" id="compAfterContainer">
-            <img class="comparison-img" id="compAfterImg" src="" alt="Compressed WebP">
-          </div>
-          
-          <!-- Slider split handle -->
-          <div class="comparison-slider" id="compSlider">
-            <div class="slider-handle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="8 17 3 12 8 7"/><polyline points="16 17 21 12 16 7"/></svg>
-            </div>
-          </div>
-          
-          <span class="comparison-label before-label" id="beforeLabel">Original</span>
-          <span class="comparison-label after-label">Compressed WebP</span>
-        </div>
-      </div>
-
-      <!-- Stats Metrics Display -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-label">Original Size</span>
-          <span class="stat-val" id="statOriginalSize">0.0 MB</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Compressed Size</span>
-          <span class="stat-val" id="statCompressedSize">0.0 MB</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Savings Ratio</span>
-          <span class="stat-val savings" id="statSavings">-0%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOTTOM: Action Download Button -->
-    <div class="bottom-actions" id="bottomActions">
-      <button class="btn" id="downloadBtn">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Compressed Image
-      </button>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Studio-OS // High-Performance Client-Side WebP Image Compressor</title>
+    <meta name="description" content="A simple, fast, and high-performance client-side WebP image compressor. Scale resolution to thumbnail or medium, adjust quality slider, and compare side-by-side." />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
