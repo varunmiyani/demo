@@ -57,6 +57,8 @@ export default function App() {
     if (selectedFile) {
       processSelectedFile(selectedFile);
     }
+    // Clear input value so that the change event will trigger even if the same file is selected again
+    e.target.value = '';
   };
 
   const processSelectedFile = (selectedFile) => {
@@ -269,6 +271,10 @@ export default function App() {
     setCompressedDims({ width: 0, height: 0 });
     setEncodingTime(0);
     setError(null);
+    // Reset file input value to allow uploading the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
