@@ -10,6 +10,8 @@ export default function App() {
   const [quality, setQuality] = useState(80); // percentage (10-100)
   const [debouncedQuality, setDebouncedQuality] = useState(80);
   const [preset, setPreset] = useState('original'); // 'original' | 'medium' | 'thumbnail'
+  const [originalResPreset, setOriginalResPreset] = useState('original'); // 'original' | '4k' | '2k'
+  const [outputFormat, setOutputFormat] = useState('webp'); // 'webp' | 'jpeg'
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -44,11 +46,11 @@ export default function App() {
     };
   }, [originalUrl, compressedUrl]);
 
-  // Handle image compression when file, preset, or quality changes
+  // Handle image compression when variables change
   useEffect(() => {
     if (!file) return;
     performCompression();
-  }, [file, preset, debouncedQuality]);
+  }, [file, preset, originalResPreset, outputFormat, debouncedQuality]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
@@ -79,7 +81,7 @@ export default function App() {
     
     try {
       const qValue = debouncedQuality / 100;
-      const res = await compressImage(file, qValue, preset);
+      const res = await compressImage(file, qValue, preset, originalResPreset, outputFormat);
       
       setCompressedSize(res.blob.size);
       setOriginalDims(res.originalDimensions);
@@ -100,7 +102,7 @@ export default function App() {
   };
 
   // Canvas Image Compression logic
-  const compressImage = (imageFile, qualityVal, sizePreset) => {
+  const compressImage = (imageFile, qualityVal, sizePreset, resPreset, format) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(imageFile);
@@ -112,28 +114,32 @@ export default function App() {
         let targetWidth = originalWidth;
         let targetHeight = originalHeight;
         
-        // Define resolutions for presets
-        if (sizePreset === 'medium') {
-          const maxDim = 1920; // High-Res Web viewing
-          if (originalWidth > maxDim || originalHeight > maxDim) {
-            if (originalWidth > originalHeight) {
-              targetWidth = maxDim;
-              targetHeight = Math.round((originalHeight * maxDim) / originalWidth);
-            } else {
-              targetHeight = maxDim;
-              targetWidth = Math.round((originalWidth * maxDim) / originalHeight);
-            }
+        // Define limits for presets
+        let maxDim = null;
+        
+        if (sizePreset === 'thumbnail') {
+          maxDim = 300; // Small preview thumbnail
+        } else if (sizePreset === 'medium') {
+          maxDim = 1920; // Medium Web view
+        } else if (sizePreset === 'original') {
+          // Check resolution restrictions for Original preset
+          if (resPreset === '4k') {
+            maxDim = 3840;
+          } else if (resPreset === '2k') {
+            maxDim = 2048;
           }
-        } else if (sizePreset === 'thumbnail') {
-          const maxDim = 300; // Small preview thumbnail
-          if (originalWidth > maxDim || originalHeight > maxDim) {
-            if (originalWidth > originalHeight) {
-              targetWidth = maxDim;
-              targetHeight = Math.round((originalHeight * maxDim) / originalWidth);
-            } else {
-              targetHeight = maxDim;
-              targetWidth = Math.round((originalWidth * maxDim) / originalHeight);
-            }
+        }
+        
+        // Apply downscaling proportionally to respect original aspect ratio (Portrait or Landscape)
+        if (maxDim && (originalWidth > maxDim || originalHeight > maxDim)) {
+          if (originalWidth > originalHeight) {
+            // Landscape orientation: restrict width, compute height
+            targetWidth = maxDim;
+            targetHeight = Math.round((originalHeight * maxDim) / originalWidth);
+          } else {
+            // Portrait orientation: restrict height, compute width
+            targetHeight = maxDim;
+            targetWidth = Math.round((originalWidth * maxDim) / originalHeight);
           }
         }
         
@@ -142,12 +148,15 @@ export default function App() {
         canvas.height = targetHeight;
         const ctx = canvas.getContext('2d');
         
-        // Anti-aliasing configurations
+        // Anti-aliasing configuration
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // Draw the original image to the canvas
+        // Draw the image
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        
+        // Output mime-type
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/webp';
         
         const startTime = performance.now();
         canvas.toBlob(
@@ -162,10 +171,10 @@ export default function App() {
                 encodingTime: Math.round(endTime - startTime)
               });
             } else {
-              reject(new Error('Canvas WebP encoding failed.'));
+              reject(new Error(`Canvas ${format.toUpperCase()} encoding failed.`));
             }
           },
-          'image/webp',
+          mimeType,
           qualityVal
         );
       };
@@ -244,9 +253,10 @@ export default function App() {
   const downloadCompressed = () => {
     if (!compressedBlob || !file) return;
     const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+    const extension = outputFormat === 'jpeg' ? 'jpg' : 'webp';
     const downloadLink = document.createElement('a');
     downloadLink.href = compressedUrl;
-    downloadLink.download = `${originalName}_compressed.webp`;
+    downloadLink.download = `${originalName}_compressed.${extension}`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -278,7 +288,7 @@ export default function App() {
       <header className="app-header">
         <div className="brand">
           <div className="brand-dot"></div>
-          <h1>Studio-OS <span>WebP Compressor</span></h1>
+          <h1>Studio-OS <span>WebP & JPEG Compressor</span></h1>
         </div>
         <p className="brand-subtitle">High-performance browser image compressor for photographers</p>
       </header>
@@ -322,12 +332,12 @@ export default function App() {
                 <p>Images never touch the cloud. Your local CPU processes everything in the browser for maximum security and zero bandwidth cost.</p>
               </div>
               <div className="info-card">
-                <h4>Next-Gen WebP</h4>
-                <p>Converts outdated JPEG/PNG grids to predictive coding WebP format, delivering up to 90% savings in storage with pristine visual quality.</p>
+                <h4>Predictive & Block Formats</h4>
+                <p>Output next-gen WebP or universal JPEG formats. Quality settings are handled locally at hardware level in milliseconds.</p>
               </div>
               <div className="info-card">
-                <h4>Built for Studio-OS</h4>
-                <p>Prepare high-resolution camera exports for seamless, blazing-fast Cloudflare R2 uploads and responsive client-side web viewing.</p>
+                <h4>Pro Aspect Preservation</h4>
+                <p>Portrait and landscape dimensions are auto-detected. Scales images cleanly without stretching or squeezing pixels.</p>
               </div>
             </div>
           </div>
@@ -353,9 +363,32 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Control Group: Format Selector */}
                 <div className="control-group">
                   <label className="control-label">
-                    <span>Quality level</span>
+                    <span>Output format</span>
+                  </label>
+                  <div className="presets-toggle">
+                    <button 
+                      className={`preset-btn ${outputFormat === 'webp' ? 'active' : ''}`}
+                      onClick={() => setOutputFormat('webp')}
+                    >
+                      <span className="preset-name">WebP</span>
+                      <span className="preset-size">Next-Gen</span>
+                    </button>
+                    <button 
+                      className={`preset-btn ${outputFormat === 'jpeg' ? 'active' : ''}`}
+                      onClick={() => setOutputFormat('jpeg')}
+                    >
+                      <span className="preset-name">JPEG</span>
+                      <span className="preset-size">Universal</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="control-group">
+                  <label className="control-label">
+                    <span>Compression Quality</span>
                     <span className="badge-value">{quality}%</span>
                   </label>
                   <div className="slider-wrapper">
@@ -369,7 +402,7 @@ export default function App() {
                       id="qualitySlider"
                     />
                     <div className="slider-ticks">
-                      <span>Fast / Low Quality</span>
+                      <span>High Comp.</span>
                       <span>Balanced</span>
                       <span>Best Quality</span>
                     </div>
@@ -378,7 +411,7 @@ export default function App() {
 
                 <div className="control-group">
                   <label className="control-label">
-                    <span>Output Resolution Preset</span>
+                    <span>Output Size Preset</span>
                   </label>
                   <div className="presets-toggle">
                     <button 
@@ -400,10 +433,42 @@ export default function App() {
                       onClick={() => setPreset('original')}
                     >
                       <span className="preset-name">Original</span>
-                      <span className="preset-size">100% Size</span>
+                      <span className="preset-size">Full Size</span>
                     </button>
                   </div>
                 </div>
+
+                {/* Sub Resolution Preset for Original Output */}
+                {preset === 'original' && (
+                  <div className="control-group animate-fade-in">
+                    <label className="control-label">
+                      <span>Original Dimension Limit</span>
+                    </label>
+                    <div className="presets-toggle">
+                      <button 
+                        className={`preset-btn ${originalResPreset === 'original' ? 'active' : ''}`}
+                        onClick={() => setOriginalResPreset('original')}
+                      >
+                        <span className="preset-name">Full Size</span>
+                        <span className="preset-size">No Scale</span>
+                      </button>
+                      <button 
+                        className={`preset-btn ${originalResPreset === '4k' ? 'active' : ''}`}
+                        onClick={() => setOriginalResPreset('4k')}
+                      >
+                        <span className="preset-name">4K Preset</span>
+                        <span className="preset-size">Max 3840px</span>
+                      </button>
+                      <button 
+                        className={`preset-btn ${originalResPreset === '2k' ? 'active' : ''}`}
+                        onClick={() => setOriginalResPreset('2k')}
+                      >
+                        <span className="preset-name">2K Preset</span>
+                        <span className="preset-size">Max 2048px</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {error && (
                   <div className="alert alert-error">
@@ -423,7 +488,7 @@ export default function App() {
                       <polyline points="7 10 12 15 17 10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    Download WebP Image
+                    Download {outputFormat.toUpperCase()} Image
                   </button>
                 </div>
               </div>
@@ -449,7 +514,7 @@ export default function App() {
                   </div>
 
                   <div className="stat-item">
-                    <span className="stat-label">Compressed Size</span>
+                    <span className="stat-label">Compressed Size ({outputFormat.toUpperCase()})</span>
                     <span className="stat-val Highlight">{formatBytes(compressedSize)}</span>
                   </div>
 
@@ -475,7 +540,7 @@ export default function App() {
                   <h3>Interactive Preview</h3>
                   <div className="preview-labels">
                     <span className="badge badge-original">Original (Left)</span>
-                    <span className="badge badge-webp">Compressed WebP (Right)</span>
+                    <span className="badge badge-webp">Compressed {outputFormat.toUpperCase()} (Right)</span>
                   </div>
                 </div>
 
@@ -483,7 +548,7 @@ export default function App() {
                   {isProcessing && (
                     <div className="loading-overlay">
                       <div className="spinner"></div>
-                      <p>Running WebP Encoder...</p>
+                      <p>Running {outputFormat.toUpperCase()} Encoder...</p>
                     </div>
                   )}
 
@@ -506,7 +571,7 @@ export default function App() {
                         id="compBeforeImg"
                       />
 
-                      {/* Right: WebP Compressed Preview Image with clip-path */}
+                      {/* Right: Compressed Preview Image with clip-path */}
                       <img 
                         src={compressedUrl} 
                         className="slider-image compressed" 
