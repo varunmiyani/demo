@@ -286,20 +286,20 @@ export default function UploadCenter() {
       {/* SECTION 2: WORKSPACE FILTER HEADER */}
       <div className="upload-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', width: '100%' }}>
         {/* Left aligned: Title */}
-        <div className="upload-title-block" style={{ flex: '1 1 200px' }}>
+        <div className="upload-title-block" style={{ flex: '0 0 auto', minWidth: '180px' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Upload Center</h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Managing {transfers.length} active transfers.</span>
         </div>
 
-        {/* Centered: Category filter tabs */}
-        <div className="upload-filters-centered" style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center' }}>
-          <div className="presets-toggle" style={{ margin: 0 }}>
+        {/* Centered: Category filter tabs (inline flex wrapper, no-wrap grid override) */}
+        <div className="upload-filters-centered" style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', minWidth: 'fit-content', whiteSpace: 'nowrap' }}>
+          <div className="presets-toggle" style={{ margin: 0, display: 'flex', flexWrap: 'nowrap', width: 'fit-content' }}>
             {['All', 'Photos', 'Short Videos', 'Highlights'].map((filterItem) => (
               <button
                 key={filterItem}
                 className={`preset-btn ${activeFilter === filterItem ? 'active' : ''}`}
                 onClick={() => setActiveFilter(filterItem)}
-                style={{ padding: '0.5rem 1.25rem' }}
+                style={{ padding: '0.5rem 1.25rem', whiteSpace: 'nowrap' }}
               >
                 <span className="preset-name" style={{ fontSize: '0.8rem' }}>{filterItem}</span>
               </button>
@@ -308,7 +308,7 @@ export default function UploadCenter() {
         </div>
 
         {/* Right aligned: Cancel Upload button */}
-        <div className="upload-actions-right" style={{ flex: '1 1 200px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="upload-actions-right" style={{ flex: '0 0 auto', minWidth: '180px', display: 'flex', justifyContent: 'flex-end' }}>
           {totalUploadingCount > 0 ? (
             <button 
               className="btn-clear-image" 
