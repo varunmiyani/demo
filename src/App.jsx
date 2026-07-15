@@ -27,6 +27,9 @@ export default function App() {
   const [sliderPos, setSliderPos] = useState(50);
   const [isDraggingSlider, setIsDraggingSlider] = useState(false);
   
+  // Simple Payment State
+  const [selectedAmount, setSelectedAmount] = useState(500);
+  
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -70,7 +73,7 @@ export default function App() {
     setFile(selectedFile);
     setOriginalSize(selectedFile.size);
     
-    // Create preview URL for original (previous originalUrl is cleaned up via useEffect)
+    // Create preview URL for original
     const url = URL.createObjectURL(selectedFile);
     setOriginalUrl(url);
   };
@@ -90,7 +93,7 @@ export default function App() {
       setEncodingTime(res.encodingTime);
       setCompressedBlob(res.blob);
 
-      // Create URL for compressed preview (previous compressedUrl is cleaned up via useEffect)
+      // Create URL for compressed preview
       const url = URL.createObjectURL(res.blob);
       setCompressedUrl(url);
     } catch (err) {
@@ -292,6 +295,45 @@ export default function App() {
       </header>
 
       <main className="app-container">
+        
+        {/* Simple Payment Gateway Sandbox Control Bar */}
+        <div className="card glass-card payment-test-card animate-fade-in">
+          <div className="payment-test-header">
+            <div className="payment-title">
+              <div className="payment-title-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
+                </svg>
+              </div>
+              <h3>Payment Gateway Sandbox</h3>
+            </div>
+            <span className="badge badge-sandbox">Test Gateway</span>
+          </div>
+          <div className="payment-test-body">
+            <div className="amount-selector-row">
+              <span className="select-label">Select Amount:</span>
+              <div className="amount-options">
+                {[500, 1000, 5999].map((amt) => (
+                  <button
+                    key={amt}
+                    className={`amount-btn ${selectedAmount === amt ? 'active' : ''}`}
+                    onClick={() => setSelectedAmount(amt)}
+                  >
+                    ₹{amt.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+              <button 
+                className="btn-primary pay-now-btn" 
+                onClick={() => alert(`Initiating Razorpay gateway for ₹${selectedAmount.toLocaleString('en-IN')}...`)}
+              >
+                Pay Now
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="workspace-grid">
           
           {/* Left Panel: Compression Controls */}

@@ -865,3 +865,97 @@ body {
   border-style: dashed;
 }
 
+/* Payment Gateway Sandbox Control Bar */
+.payment-test-card {
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.75rem;
+}
+
+.payment-test-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 0.75rem;
+}
+
+.payment-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-title-icon {
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+}
+
+.payment-title h3 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.badge-sandbox {
+  background: rgba(217, 70, 239, 0.1);
+  color: #f5d0fe;
+  border: 1px solid rgba(217, 70, 239, 0.2);
+}
+
+.amount-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.select-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.amount-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.amount-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition-smooth);
+}
+
+.amount-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.amount-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.pay-now-btn {
+  max-width: 260px;
+  padding: 0.75rem 1.25rem;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .pay-now-btn {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
