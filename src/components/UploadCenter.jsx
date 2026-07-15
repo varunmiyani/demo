@@ -66,7 +66,7 @@ const initialTransfers = [
 
 export default function UploadCenter() {
   const [transfers, setTransfers] = useState(initialTransfers);
-  const [selectedRows, setSelectedRows] = useState(new Set([1, 2, 3, 4, 5, 6])); // initially select all by default like screenshot
+  const [selectedRows, setSelectedRows] = useState(new Set()); // initially all checkboxes are unselected
   const [activeFilter, setActiveFilter] = useState('All'); // 'All' | 'Photos' | 'Short Videos' | 'Highlights'
   
   // File input refs for each drag-and-drop category tile
@@ -331,25 +331,41 @@ export default function UploadCenter() {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-glass)', background: 'rgba(255, 255, 255, 0.01)' }}>
                   
-                  {/* Select All Checkbox */}
+                  {/* Select All Checkbox Column */}
                   <th style={{ padding: '1rem', width: '48px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={isAllFilteredSelected} 
-                        onChange={toggleSelectAll} 
-                        style={{ cursor: 'pointer' }}
-                      />
-                      {selectedRows.size > 0 && (
-                        <button 
-                          onClick={deleteSelected}
-                          title="Delete selected items"
-                          style={{ background: 'transparent', border: 'none', color: '#fca5a5', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                        >
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                        </button>
-                      )}
-                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={isAllFilteredSelected} 
+                      onChange={toggleSelectAll} 
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </th>
+
+                  {/* Bulk Delete Header Column */}
+                  <th style={{ padding: '1rem', width: '48px' }}>
+                    <button 
+                      onClick={deleteSelected}
+                      disabled={selectedRows.size === 0}
+                      title="Delete selected items"
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        color: selectedRows.size > 0 ? '#ef4444' : 'var(--text-muted)', 
+                        opacity: selectedRows.size > 0 ? 1 : 0.3,
+                        cursor: selectedRows.size > 0 ? 'pointer' : 'not-allowed',
+                        padding: 0, 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        transition: 'var(--transition-smooth)'
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
                   </th>
 
                   <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '600', width: '80px' }}>Thumb</th>
@@ -378,14 +394,39 @@ export default function UploadCenter() {
                       }}
                       className="upload-table-row"
                     >
-                      {/* Checkbox select */}
-                      <td style={{ padding: '1rem' }}>
+                      {/* Checkbox select column */}
+                      <td style={{ padding: '1rem', width: '48px' }}>
                         <input 
                           type="checkbox" 
                           checked={isSelected} 
                           onChange={() => toggleSelectRow(item.id)} 
                           style={{ cursor: 'pointer' }}
                         />
+                      </td>
+
+                      {/* Dedicated Row Delete Column */}
+                      <td style={{ padding: '1rem', width: '48px' }}>
+                        <button
+                          onClick={() => deleteTransfer(item.id)}
+                          disabled={!isSelected}
+                          title="Delete file transfer"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: isSelected ? '#ef4444' : 'var(--text-muted)',
+                            opacity: isSelected ? 1 : 0.3,
+                            cursor: isSelected ? 'pointer' : 'not-allowed',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            transition: 'var(--transition-smooth)'
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
                       </td>
 
                       {/* Thumbnail frame */}
@@ -428,16 +469,7 @@ export default function UploadCenter() {
 
                           {/* 2. Success Badge */}
                           {item.status === 'Success' && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#a7f3d0', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>Success</span>
-                              <button 
-                                onClick={() => deleteTransfer(item.id)}
-                                title="Delete transfer history"
-                                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-                              >
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                              </button>
-                            </div>
+                            <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#a7f3d0', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>Success</span>
                           )}
 
                           {/* 3. Failed Badge with retry trigger */}
