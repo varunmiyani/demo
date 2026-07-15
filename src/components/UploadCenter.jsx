@@ -74,25 +74,8 @@ export default function UploadCenter() {
   const shortVideoInputRef = useRef(null);
   const highlightInputRef = useRef(null);
 
-  // 1. SIMULATE ACTIVE UPLOADS IN REAL TIME
-  // This simulation fires every second, incrementing the progress of files marked as 'Uploading'
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTransfers((prev) =>
-        prev.map((item) => {
-          if (item.status === 'Uploading') {
-            const nextProgress = item.progress + Math.floor(Math.random() * 8) + 2; // progress increments randomly by 2-9%
-            if (nextProgress >= 100) {
-              return { ...item, progress: 100, status: 'Success' };
-            }
-            return { ...item, progress: nextProgress };
-          }
-          return item;
-        })
-      );
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // 1. SIMULATE ACTIVE UPLOADS IN REAL TIME (DISABLED FOR HARDCODED PREVIEW)
+  // Progress states are kept static for first two uploading transfers as requested.
 
   // 2. CHECKBOX SELECTION LOGIC
   // Filter items based on active category filter tab
@@ -301,36 +284,41 @@ export default function UploadCenter() {
       </div>
 
       {/* SECTION 2: WORKSPACE FILTER HEADER */}
-      <div className="upload-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.25rem' }}>
-        <div className="upload-title-block">
+      <div className="upload-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', width: '100%' }}>
+        {/* Left aligned: Title */}
+        <div className="upload-title-block" style={{ flex: '1 1 200px' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Upload Center</h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Managing {transfers.length} active transfers.</span>
         </div>
 
-        <div className="upload-controls" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {/* Category filter tabs */}
+        {/* Centered: Category filter tabs */}
+        <div className="upload-filters-centered" style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center' }}>
           <div className="presets-toggle" style={{ margin: 0 }}>
             {['All', 'Photos', 'Short Videos', 'Highlights'].map((filterItem) => (
               <button
                 key={filterItem}
                 className={`preset-btn ${activeFilter === filterItem ? 'active' : ''}`}
                 onClick={() => setActiveFilter(filterItem)}
-                style={{ padding: '0.5rem 1rem' }}
+                style={{ padding: '0.5rem 1.25rem' }}
               >
                 <span className="preset-name" style={{ fontSize: '0.8rem' }}>{filterItem}</span>
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Action Trigger */}
-          {totalUploadingCount > 0 && (
+        {/* Right aligned: Cancel Upload button */}
+        <div className="upload-actions-right" style={{ flex: '1 1 200px', display: 'flex', justifyContent: 'flex-end' }}>
+          {totalUploadingCount > 0 ? (
             <button 
               className="btn-clear-image" 
               onClick={cancelAllUploads}
-              style={{ padding: '0.5rem 1rem', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}
+              style={{ padding: '0.5rem 1rem', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', whiteSpace: 'nowrap' }}
             >
               Cancel Upload
             </button>
+          ) : (
+            <div style={{ width: '120px', height: '1px' }}></div>
           )}
         </div>
       </div>
@@ -375,10 +363,10 @@ export default function UploadCenter() {
                 {filteredTransfers.map((item) => {
                   const isSelected = isRowSelected(item.id);
                   
-                  // Compute dynamic green progress bar overlays spanning the table rows during active uploads
-                  const backgroundProgress = item.status === 'Uploading'
-                    ? `linear-gradient(90deg, rgba(16, 185, 129, 0.08) ${item.progress}%, transparent ${item.progress}%)`
-                    : 'transparent';
+                   // Compute dynamic green progress bar overlays spanning the table rows during active uploads
+                   const backgroundProgress = item.status === 'Uploading'
+                     ? `linear-gradient(90deg, rgba(16, 185, 129, 0.12) ${item.progress}%, transparent ${item.progress}%)`
+                     : 'transparent';
 
                   return (
                     <tr 
