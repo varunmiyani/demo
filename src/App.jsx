@@ -29,6 +29,7 @@ export default function App() {
   
   // Simple Payment State
   const [selectedAmount, setSelectedAmount] = useState(500);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -280,6 +281,95 @@ export default function App() {
     }
   };
 
+  const handlePayment = async () => {
+    setIsProcessingPayment(true);
+    try {
+      // 1. Create order on the backend
+      const response = await fetch('http://localhost:5001/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount: selectedAmount })
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to create payment order');
+      }
+      
+      const orderData = await response.json();
+      
+      // 2. Open Razorpay Checkout Modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Loaded from env in Vite
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Studio-OS',
+        description: 'Test Premium Subscription Payment',
+        order_id: orderData.order_id,
+        handler: async (paymentResponse) => {
+          setIsProcessingPayment(true);
+          try {
+            // 3. Verify Payment Signature
+            const verifyResponse = await fetch('http://localhost:5001/api/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature
+              })
+            });
+            
+            const verifyData = await verifyResponse.json();
+            if (verifyResponse.ok && verifyData.success) {
+              alert(`🎉 Payment Successful!\nTransaction ID: ${paymentResponse.razorpay_payment_id}\nYour premium subscription is now active.`);
+            } else {
+              alert(`❌ Payment verification failed: ${verifyData.error || 'Signature mismatch'}`);
+            }
+          } catch (verifyErr) {
+            console.error(verifyErr);
+            alert(`❌ Payment verification error: ${verifyErr.message}`);
+          } finally {
+            setIsProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: 'Sandbox Customer',
+          email: 'customer@studio-os.com',
+          contact: '9999999999'
+        },
+        theme: {
+          color: '#6366f1' // brand primary color (indigo)
+        },
+        modal: {
+          ondismiss: () => {
+            alert('⚠️ Payment checkout closed by user.');
+            setIsProcessingPayment(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', (response) => {
+        console.error('Payment failed details:', response.error);
+        alert(`❌ Payment failed: ${response.error.description || 'Transaction declined'}`);
+        setIsProcessingPayment(false);
+      });
+      
+      rzp.open();
+      
+    } catch (err) {
+      console.error('Payment initialization error:', err);
+      alert(`❌ Failed to start checkout: ${err.message}`);
+      setIsProcessingPayment(false);
+    }
+  };
+
   return (
     <div className="app-layout">
       {/* Background Gradients */}
@@ -326,9 +416,17 @@ export default function App() {
               </div>
               <button 
                 className="btn-primary pay-now-btn" 
-                onClick={() => alert(`Initiating Razorpay gateway for ₹${selectedAmount.toLocaleString('en-IN')}...`)}
+                onClick={handlePayment}
+                disabled={isProcessingPayment}
               >
-                Pay Now
+                {isProcessingPayment ? (
+                  <>
+                    <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', marginRight: '6px', borderTopColor: '#fff' }}></span>
+                    Loading...
+                  </>
+                ) : (
+                  'Pay Now'
+                )}
               </button>
             </div>
           </div>
