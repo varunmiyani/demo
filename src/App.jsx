@@ -33,6 +33,7 @@ export default function App() {
   
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const quickPayFormRef = useRef(null);
 
   // Debounce quality changes so we don't re-compress on every single slider tick
   useEffect(() => {
@@ -49,6 +50,21 @@ export default function App() {
       if (compressedUrl) URL.revokeObjectURL(compressedUrl);
     };
   }, [originalUrl, compressedUrl]);
+
+  // Load Razorpay Hosted Payment Button script dynamically
+  useEffect(() => {
+    if (!quickPayFormRef.current) return;
+    
+    // Clear out to prevent duplication during hot reloads
+    quickPayFormRef.current.innerHTML = '';
+    
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+    script.setAttribute('data-payment_button_id', 'pl_TDi5nRLHukOWRg');
+    script.async = true;
+    
+    quickPayFormRef.current.appendChild(script);
+  }, []);
 
   // Handle image compression when variables change
   useEffect(() => {
@@ -428,6 +444,17 @@ export default function App() {
                   'Pay Now'
                 )}
               </button>
+            </div>
+
+            {/* Flat ₹5999 Quick Pay Pre-built Button */}
+            <div className="quick-pay-row" style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px dashed var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div className="quick-pay-info">
+                <span className="select-label" style={{ display: 'block', marginBottom: '0.25rem' }}>Quick Pay Checkout:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pay flat ₹5,999 directly via Razorpay Hosted Payment button</span>
+              </div>
+              <form ref={quickPayFormRef} style={{ minHeight: '40px', display: 'flex', alignItems: 'center' }}>
+                {/* Script injected dynamically */}
+              </form>
             </div>
           </div>
         </div>
