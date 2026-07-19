@@ -26,3 +26,38 @@ dist-ssr
 # Env
 .env
 
+\n
+# MCP configuration (contains auth tokens)
+.mcp.json
+
+# Environment variables (credentials)
+.env
+.env.local
+.env.production
+
+# Google OAuth credentials
+client_secret*.json
+
+# macOS system files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Node tooling (markdownlint-cli2, prettier)
+node_modules/
+
+# Data directory (generated content — too large for git)
+data/
+
+# temporory ai prompts
+prompt/
+Obsidian/
+ux-inspiration/
+temp/
+
+# Claude Code local settings (personal, per-machine)
+.claude/settings.local.json
